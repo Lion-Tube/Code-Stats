@@ -46,12 +46,13 @@
 
 ### من المصدر (يحتاج Rust مثبّت)
 
-```bash
 # استنسخ المستودع
+```bash
 git clone https://github.com/lion-tube/code-stats
 cd code-stats
-
+```
 # ابنِ وثبّت الأداة
+```bash
 cargo install --path .
 ```
 
@@ -69,7 +70,9 @@ cargo run -- [المسار] [الأمر]
 
 ```bash
 code-stats /path/to/your/project
+```
 # أو من داخل المشروع:
+```bash
 code-stats .
 ```
 
@@ -84,14 +87,16 @@ code-stats .
 
 ### خيارات متقدمة
 
-```bash
 # تجاهل امتدادات معينة
+```bash
 code-stats . --ignore-ext txt,log,md
-
+```
 # تجاهل مجلدات إضافية
+```bash
 code-stats . --ignore-dir tests,docs
-
+```
 # تجميع الخيارات
+```bash
 code-stats /my/project lines --ignore-ext lock --ignore-dir dist
 ```
 
