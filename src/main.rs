@@ -253,7 +253,7 @@ fn print_tree_recursive(root: &Path, current: &Path, prefix: &str, ignore_dir: &
                 "{}{}{}",
                 prefix,
                 connector,
-                format!("[DIR] {}/", name).bright_cyan()
+                format!("📁 {}/", name).bright_cyan()
             );
             print_tree_recursive(
                 root,
@@ -269,29 +269,34 @@ fn print_tree_recursive(root: &Path, current: &Path, prefix: &str, ignore_dir: &
     }
 }
 
-fn file_tag(name: &str) -> ColoredString {
+fn file_tag(name: &str) -> &'static str {
     let ext = name.split('.').last().unwrap_or("").to_lowercase();
-    let label = match ext.as_str() {
-        "rs"                           => "[rs] ",
-        "py"                           => "[py] ",
-        "js"                           => "[js] ",
-        "ts"                           => "[ts] ",
-        "go"                           => "[go] ",
-        "c" | "cpp" | "h"             => "[c]  ",
-        "java"                         => "[jv] ",
-        "html" | "htm"                 => "[htm]",
-        "css" | "scss"                 => "[css]",
-        "json"                         => "[jsn]",
-        "yaml" | "toml" | "yml"        => "[cfg]",
-        "md"                           => "[md] ",
-        "sh" | "bash"                  => "[sh] ",
-        "sql"                          => "[sql]",
-        "txt"                          => "[txt]",
+    match ext.as_str() {
+        "rs"                          => "🦀",
+        "py"                          => "🐍",
+        "js"                          => "⚡",
+        "ts"                          => "⚡",
+        "go"                          => "🐹",
+        "c" | "cpp" | "h"            => "⚙️ ",
+        "java"                        => "☕",
+        "swift"                       => "🐦",
+        "rb"                          => "💎",
+        "php"                         => "🐘",
+        "r"                           => "📊",
+        "zig"                         => "💚",
+        "html" | "htm"                => "🌐",
+        "css" | "scss"                => "🎨",
+        "json"                        => "📋",
+        "yaml" | "toml" | "yml"       => "📄",
+        "md"                          => "📝",
+        "sh" | "bash"                 => "🖥️ ",
+        "sql"                         => "🗄️ ",
+        "txt"                         => "📃",
         "png" | "jpg" | "jpeg"
-        | "gif" | "svg"                => "[img]",
-        _                              => "[---]",
-    };
-    label.bright_black()
+        | "gif" | "svg"               => "🖼️ ",
+        "lock"                        => "🔒",
+        _                             => "📄",
+    }
 }
 
 fn color_file_name(name: &str) -> ColoredString {
