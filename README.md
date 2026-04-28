@@ -156,11 +156,12 @@ code-stats /my/project lines --ignore-ext lock --ignore-dir dist,tests
   Project Tree
 ============================================================
   ./
-|--- [DIR] src/
-|    |--- [js]  index.js
-|    +--> [ts]  types.ts
-|--- [cfg] package.json
-+--> [md]  README.md
+|--- 📁 src/
+|    |--- ⚡ index.js
+|    +--> ⚡ types.ts
+|--- 🔒 package-lock.json
+|--- 📋 package.json
++--> 📝 README.md
 ```
 
 ### شرح تصنيف هيمنة اللغة
@@ -175,7 +176,37 @@ code-stats /my/project lines --ignore-ext lock --ignore-dir dist,tests
 
 ---
 
-## المجلدات المتجاهلة تلقائياً
+## اللغات المدعومة وإيموجياتها
+
+| الإيموجي | الامتداد | اللغة |
+|---------|----------|-------|
+| 🦀 | `.rs` | Rust |
+| 🐍 | `.py` | Python |
+| ⚡ | `.js` / `.ts` | JavaScript / TypeScript |
+| 🐹 | `.go` | Go |
+| ⚙️ | `.c` / `.cpp` / `.h` | C / C++ |
+| ☕ | `.java` | Java |
+| 🐦 | `.swift` | Swift |
+| 💎 | `.rb` | Ruby |
+| 🐘 | `.php` | PHP |
+| 📊 | `.r` | R |
+| 💚 | `.zig` | Zig |
+| 🌐 | `.html` / `.htm` | HTML |
+| 🎨 | `.css` / `.scss` | CSS / SCSS |
+| 📋 | `.json` | JSON |
+| 📄 | `.yaml` / `.toml` / `.yml` | YAML / TOML |
+| 📝 | `.md` | Markdown |
+| 🖥️ | `.sh` / `.bash` | Shell |
+| 🗄️ | `.sql` | SQL |
+| 📃 | `.txt` | Text |
+| 🖼️ | `.png` / `.jpg` / `.gif` / `.svg` | Images |
+| 🔒 | `.lock` | Lockfile |
+| 📁 | — | Directories |
+| 📄 | أي امتداد آخر | Other |
+
+---
+
+
 
 الأداة تتجاهل هذه المجلدات دائماً دون الحاجة لتحديدها:
 
