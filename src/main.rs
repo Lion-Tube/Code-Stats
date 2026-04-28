@@ -6,11 +6,10 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 // ===================================================
-//  code-stats — أداة تحليل المشاريع البرمجية
-//  تم تطويرها بمساعدة الذكاء الاصطناعي (Claude)
+//  code-stats - Source Code Analysis Tool
+//  Built with Rust | Developed with Claude AI
 // ===================================================
 
-/// الدلائل التي يتم تجاهلها تلقائياً
 const DEFAULT_IGNORE: &[&str] = &[
     ".git",
     "target",
@@ -24,13 +23,13 @@ const DEFAULT_IGNORE: &[&str] = &[
     "vendor",
 ];
 
-// ──────────────────────────────────────────────────
-//  هياكل البيانات
-// ──────────────────────────────────────────────────
+// --------------------------------------------------
+//  Data Structures
+// --------------------------------------------------
 
-/// إحصائيات ملف واحد
 #[derive(Debug)]
 struct FileStats {
+    #[allow(dead_code)]
     path: PathBuf,
     total_lines: usize,
     code_lines: usize,
@@ -39,7 +38,6 @@ struct FileStats {
     extension: String,
 }
 
-/// ملخص نوع ملف معيّن
 #[derive(Debug, Default)]
 struct ExtensionSummary {
     file_count: usize,
@@ -47,14 +45,14 @@ struct ExtensionSummary {
     code_lines: usize,
 }
 
-// ──────────────────────────────────────────────────
-//  إعداد CLI باستخدام clap
-// ──────────────────────────────────────────────────
+// --------------------------------------------------
+//  CLI setup via clap
+// --------------------------------------------------
 
 #[derive(Parser)]
 #[command(
     name = "code-stats",
-    about = "أداة تحليل الكود المصدري — تعطيك إحصائيات كاملة عن مشروعك",
+    about = "Source code analyzer - get full stats about your project",
     version = "0.1.0",
     long_about = None
 )]
@@ -62,40 +60,38 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// المسار للمشروع (افتراضي: المجلد الحالي)
+    /// Path to the project (default: current directory)
     #[arg(default_value = ".")]
     path: String,
 
-    /// امتدادات ملفات يتم تجاهلها (مثال: --ignore-ext txt,log)
+    /// File extensions to ignore (e.g. --ignore-ext txt,log)
     #[arg(long, value_delimiter = ',')]
     ignore_ext: Vec<String>,
 
-    /// دلائل إضافية لتجاهلها
+    /// Extra directories to ignore
     #[arg(long, value_delimiter = ',')]
     ignore_dir: Vec<String>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// عرض مخطط شجري كامل للمشروع
+    /// Show a full tree map of the project (folders & files)
     Tree {
-        /// إظهار الملفات فقط (بدون مجلدات فارغة)
         #[arg(long)]
         files_only: bool,
     },
-    /// إحصائيات عدد الأسطر مع تفصيل لكل نوع ملف
+    /// Show line counts broken down by file type
     Lines,
-    /// إحصائيات سريعة: عدد الملفات والأسطر والمجلدات
+    /// Quick overview: files, folders, lines, code ratio
     Stats,
-    /// عرض جميع المعلومات دفعة واحدة
+    /// Show everything at once (default)
     All,
 }
 
-// ──────────────────────────────────────────────────
-//  منطق التحليل
-// ──────────────────────────────────────────────────
+// --------------------------------------------------
+//  Analysis logic
+// --------------------------------------------------
 
-/// يتحقق إذا كان المسار يجب تجاهله
 fn should_ignore(path: &Path, extra_ignore: &[String]) -> bool {
     path.components().any(|c| {
         let name = c.as_os_str().to_string_lossy();
@@ -104,21 +100,19 @@ fn should_ignore(path: &Path, extra_ignore: &[String]) -> bool {
     })
 }
 
-/// يقرأ ملفاً ويحسب أسطره بالتفصيل
 fn analyze_file(path: &Path) -> Option<FileStats> {
     let content = fs::read_to_string(path).ok()?;
     let ext = path
         .extension()
         .map(|e| e.to_string_lossy().to_lowercase())
-        .unwrap_or_else(|| "بلا امتداد".into())
+        .unwrap_or_else(|| "no-ext".into())
         .to_string();
 
-    let mut total = 0usize;
-    let mut blank = 0usize;
+    let mut total   = 0usize;
+    let mut blank   = 0usize;
     let mut comment = 0usize;
-    let mut code = 0usize;
+    let mut code    = 0usize;
 
-    // رموز التعليقات الشائعة حسب الامتداد
     let comment_prefix = match ext.as_str() {
         "py" | "sh" | "rb" | "yml" | "yaml" | "toml" => "#",
         "rs" | "js" | "ts" | "c" | "cpp" | "h" | "java" | "go" | "swift" => "//",
@@ -149,12 +143,10 @@ fn analyze_file(path: &Path) -> Option<FileStats> {
     })
 }
 
-/// يجمع كل ملفات المشروع مع تطبيق فلتر التجاهل
 fn collect_files(root: &Path, ignore_ext: &[String], ignore_dir: &[String]) -> Vec<FileStats> {
     WalkDir::new(root)
         .into_iter()
         .filter_entry(|e| {
-            // تجاهل الدلائل المحددة
             if e.file_type().is_dir() {
                 return !should_ignore(e.path(), ignore_dir);
             }
@@ -163,7 +155,6 @@ fn collect_files(root: &Path, ignore_ext: &[String], ignore_dir: &[String]) -> V
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .filter(|e| {
-            // تجاهل الامتدادات المحددة من المستخدم
             if ignore_ext.is_empty() {
                 return true;
             }
@@ -179,47 +170,82 @@ fn collect_files(root: &Path, ignore_ext: &[String], ignore_dir: &[String]) -> V
         .collect()
 }
 
-// ──────────────────────────────────────────────────
-//  عرض المخطط الشجري
-// ──────────────────────────────────────────────────
+// --------------------------------------------------
+//  Language name mapping
+// --------------------------------------------------
 
-/// يرسم مخطط الشجرة بشكل جميل
+fn ext_to_language(ext: &str) -> &'static str {
+    match ext {
+        "rs"                    => "Rust",
+        "py"                    => "Python",
+        "js"                    => "JavaScript",
+        "ts"                    => "TypeScript",
+        "go"                    => "Go",
+        "c"                     => "C",
+        "cpp" | "cc" | "cxx"    => "C++",
+        "h" | "hpp"             => "C/C++ Header",
+        "java"                  => "Java",
+        "kt" | "kts"            => "Kotlin",
+        "swift"                 => "Swift",
+        "rb"                    => "Ruby",
+        "php"                   => "PHP",
+        "cs"                    => "C#",
+        "html" | "htm"          => "HTML",
+        "css"                   => "CSS",
+        "scss" | "sass"         => "SCSS/Sass",
+        "sh" | "bash"           => "Shell",
+        "sql"                   => "SQL",
+        "json"                  => "JSON",
+        "yaml" | "yml"          => "YAML",
+        "toml"                  => "TOML",
+        "md" | "markdown"       => "Markdown",
+        "xml"                   => "XML",
+        "lua"                   => "Lua",
+        "dart"                  => "Dart",
+        "r"                     => "R",
+        "ex" | "exs"            => "Elixir",
+        "hs"                    => "Haskell",
+        "lock"                  => "Lockfile",
+        _                       => "Other",
+    }
+}
+
+// --------------------------------------------------
+//  Tree display
+// --------------------------------------------------
+
 fn print_tree(root: &Path, ignore_dir: &[String]) {
-    println!("{}", format!("📁 {}", root.display()).bright_cyan().bold());
+    println!("{}", format!("  {}/", root.display()).bright_cyan().bold());
     print_tree_recursive(root, root, "", ignore_dir);
 }
 
 fn print_tree_recursive(root: &Path, current: &Path, prefix: &str, ignore_dir: &[String]) {
-    // نقرأ محتوى المجلد ونرتبه: المجلدات أولاً ثم الملفات
     let mut entries: Vec<_> = match fs::read_dir(current) {
         Ok(r) => r.filter_map(|e| e.ok()).collect(),
         Err(_) => return,
     };
 
+    // Dirs first, then files, alphabetically
     entries.sort_by(|a, b| {
         let a_is_dir = a.file_type().map(|t| t.is_dir()).unwrap_or(false);
         let b_is_dir = b.file_type().map(|t| t.is_dir()).unwrap_or(false);
         b_is_dir.cmp(&a_is_dir).then(a.file_name().cmp(&b.file_name()))
     });
 
-    // نتجاهل الدلائل المحظورة
     let entries: Vec<_> = entries
         .into_iter()
-        .filter(|e| {
-            let path = e.path();
-            !should_ignore(&path, ignore_dir)
-        })
+        .filter(|e| !should_ignore(&e.path(), ignore_dir))
         .collect();
 
     let count = entries.len();
 
     for (i, entry) in entries.iter().enumerate() {
-        let is_last = i == count - 1;
-        let connector = if is_last { "└── " } else { "├── " };
-        let extension = if is_last { "    " } else { "│   " };
+        let is_last      = i == count - 1;
+        let connector    = if is_last { "+--> " } else { "|--- " };
+        let continuation = if is_last { "     " } else { "|    " };
 
-        let path = entry.path();
-        let name = entry.file_name().to_string_lossy().to_string();
+        let path   = entry.path();
+        let name   = entry.file_name().to_string_lossy().to_string();
         let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
 
         if is_dir {
@@ -227,70 +253,72 @@ fn print_tree_recursive(root: &Path, current: &Path, prefix: &str, ignore_dir: &
                 "{}{}{}",
                 prefix,
                 connector,
-                format!("📁 {}/", name).bright_cyan()
+                format!("[DIR] {}/", name).bright_cyan()
             );
             print_tree_recursive(
                 root,
                 &path,
-                &format!("{}{}", prefix, extension),
+                &format!("{}{}", prefix, continuation),
                 ignore_dir,
             );
         } else {
-            // نعطي لون مختلف لكل نوع ملف
-            let icon = file_icon(&name);
+            let tag          = file_tag(&name);
             let colored_name = color_file_name(&name);
-            println!("{}{}{} {}", prefix, connector, icon, colored_name);
+            println!("{}{}{} {}", prefix, connector, tag, colored_name);
         }
     }
 }
 
-/// أيقونة لكل نوع ملف
-fn file_icon(name: &str) -> &'static str {
+fn file_tag(name: &str) -> ColoredString {
     let ext = name.split('.').last().unwrap_or("").to_lowercase();
-    match ext.as_str() {
-        "rs" => "🦀",
-        "py" => "🐍",
-        "js" | "ts" => "⚡",
-        "go" => "🐹",
-        "c" | "cpp" | "h" => "⚙️ ",
-        "java" => "☕",
-        "html" | "htm" => "🌐",
-        "css" | "scss" => "🎨",
-        "json" | "yaml" | "toml" | "yml" => "📄",
-        "md" => "📝",
-        "sh" | "bash" => "🖥️ ",
-        "sql" => "🗄️ ",
-        "txt" => "📃",
-        "png" | "jpg" | "jpeg" | "gif" | "svg" => "🖼️ ",
-        _ => "📄",
-    }
+    let label = match ext.as_str() {
+        "rs"                           => "[rs] ",
+        "py"                           => "[py] ",
+        "js"                           => "[js] ",
+        "ts"                           => "[ts] ",
+        "go"                           => "[go] ",
+        "c" | "cpp" | "h"             => "[c]  ",
+        "java"                         => "[jv] ",
+        "html" | "htm"                 => "[htm]",
+        "css" | "scss"                 => "[css]",
+        "json"                         => "[jsn]",
+        "yaml" | "toml" | "yml"        => "[cfg]",
+        "md"                           => "[md] ",
+        "sh" | "bash"                  => "[sh] ",
+        "sql"                          => "[sql]",
+        "txt"                          => "[txt]",
+        "png" | "jpg" | "jpeg"
+        | "gif" | "svg"                => "[img]",
+        _                              => "[---]",
+    };
+    label.bright_black()
 }
 
-/// لون لكل نوع ملف
 fn color_file_name(name: &str) -> ColoredString {
     let ext = name.split('.').last().unwrap_or("").to_lowercase();
     match ext.as_str() {
-        "rs" => name.bright_red().bold(),
-        "py" => name.yellow().bold(),
-        "js" | "ts" => name.bright_yellow(),
-        "go" => name.cyan(),
-        "c" | "cpp" | "h" => name.blue(),
-        "java" => name.bright_red(),
-        "html" | "htm" => name.bright_magenta(),
-        "css" | "scss" => name.magenta(),
-        "json" | "yaml" | "toml" | "yml" => name.bright_green(),
-        "md" => name.white().bold(),
-        "sh" | "bash" => name.green(),
-        _ => name.white(),
+        "rs"                 => name.bright_red().bold(),
+        "py"                 => name.yellow().bold(),
+        "js" | "ts"          => name.bright_yellow(),
+        "go"                 => name.cyan(),
+        "c" | "cpp" | "h"   => name.blue(),
+        "java"               => name.bright_red(),
+        "html" | "htm"       => name.bright_magenta(),
+        "css" | "scss"       => name.magenta(),
+        "json" | "yaml"
+        | "toml" | "yml"     => name.bright_green(),
+        "md"                 => name.white().bold(),
+        "sh" | "bash"        => name.green(),
+        _                    => name.white(),
     }
 }
 
-// ──────────────────────────────────────────────────
-//  عرض الإحصائيات
-// ──────────────────────────────────────────────────
+// --------------------------------------------------
+//  Stats display
+// --------------------------------------------------
 
-fn print_separator(width: usize) {
-    println!("{}", "─".repeat(width).bright_black());
+fn sep(width: usize) {
+    println!("{}", "-".repeat(width).bright_black());
 }
 
 fn print_lines_stats(files: &[FileStats]) {
@@ -298,66 +326,91 @@ fn print_lines_stats(files: &[FileStats]) {
 
     for f in files {
         let s = by_ext.entry(f.extension.as_str()).or_default();
-        s.file_count += 1;
+        s.file_count  += 1;
         s.total_lines += f.total_lines;
-        s.code_lines += f.code_lines;
+        s.code_lines  += f.code_lines;
     }
 
-    // ترتيب حسب عدد أسطر الكود تنازلياً
     let mut sorted: Vec<_> = by_ext.iter().collect();
     sorted.sort_by(|a, b| b.1.code_lines.cmp(&a.1.code_lines));
 
-    println!("\n{}", "━".repeat(60).bright_blue());
-    println!(
-        "{}",
-        "  📊  إحصائيات الأسطر حسب نوع الملف"
-            .bright_white()
-            .bold()
-    );
-    println!("{}", "━".repeat(60).bright_blue());
-    println!(
-        "  {:<12} {:>8} {:>12} {:>10}",
-        "الامتداد".bright_cyan().bold(),
-        "ملفات".bright_cyan().bold(),
-        "كود".bright_cyan().bold(),
-        "إجمالي".bright_cyan().bold()
-    );
-    print_separator(60);
-
     let total_files: usize = sorted.iter().map(|(_, s)| s.file_count).sum();
-    let total_code: usize = sorted.iter().map(|(_, s)| s.code_lines).sum();
+    let total_code:  usize = sorted.iter().map(|(_, s)| s.code_lines).sum();
     let total_lines: usize = sorted.iter().map(|(_, s)| s.total_lines).sum();
 
+    println!("\n{}", "=".repeat(82).bright_blue());
+    println!("{}", "  Lines Breakdown by Language".bright_white().bold());
+    println!("{}", "=".repeat(82).bright_blue());
+
+    println!(
+        "  {:<10} {:<18} {:>6} {:>10} {:>10}  {:<22}",
+        "Ext".bright_cyan().bold(),
+        "Language".bright_cyan().bold(),
+        "Files".bright_cyan().bold(),
+        "Code".bright_cyan().bold(),
+        "Total".bright_cyan().bold(),
+        "Share".bright_cyan().bold(),
+    );
+    sep(82);
+
     for (ext, summary) in &sorted {
-        let bar_len = if total_code > 0 {
-            (summary.code_lines * 20 / total_code).max(if summary.code_lines > 0 { 1 } else { 0 })
+        let lang = ext_to_language(ext);
+
+        let pct = if total_code > 0 {
+            summary.code_lines * 100 / total_code
         } else {
             0
         };
-        let bar = "█".repeat(bar_len);
+
+        // Progress bar (max 18 chars wide)
+        let bar_len = if total_code > 0 {
+            (summary.code_lines * 18 / total_code).max(if summary.code_lines > 0 { 1 } else { 0 })
+        } else {
+            0
+        };
+        let bar   = "#".repeat(bar_len);
+        let empty = ".".repeat(18usize.saturating_sub(bar_len));
+
+        // Dominance label
+        let dominance = if pct >= 60 {
+            "Dominant  "
+        } else if pct >= 30 {
+            "Major     "
+        } else if pct >= 10 {
+            "Significant"
+        } else if pct >= 1 {
+            "Minor     "
+        } else {
+            "Negligible"
+        };
+
         println!(
-            "  {:<12} {:>8} {:>12} {:>10}  {}",
+            "  {:<10} {:<18} {:>6} {:>10} {:>10}  {:>3}% [{}{}] {}",
             format!(".{}", ext).yellow(),
+            lang.white(),
             summary.file_count.to_string().white(),
             summary.code_lines.to_string().bright_green().bold(),
             summary.total_lines.to_string().white(),
-            bar.bright_blue()
+            pct,
+            bar.bright_blue(),
+            empty.bright_black(),
+            dominance.bright_yellow(),
         );
     }
 
-    print_separator(60);
+    sep(82);
     println!(
-        "  {:<12} {:>8} {:>12} {:>10}",
-        "الإجمالي".bright_white().bold(),
+        "  {:<10} {:<18} {:>6} {:>10} {:>10}",
+        "TOTAL".bright_white().bold(),
+        "",
         total_files.to_string().bright_white().bold(),
         total_code.to_string().bright_green().bold(),
-        total_lines.to_string().bright_white().bold()
+        total_lines.to_string().bright_white().bold(),
     );
-    println!("{}\n", "━".repeat(60).bright_blue());
+    println!("{}\n", "=".repeat(82).bright_blue());
 }
 
 fn print_full_stats(root: &Path, files: &[FileStats]) {
-    // حساب المجلدات
     let dir_count = WalkDir::new(root)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -365,41 +418,38 @@ fn print_full_stats(root: &Path, files: &[FileStats]) {
         .filter(|e| !should_ignore(e.path(), &[]))
         .count();
 
-    let total_lines: usize = files.iter().map(|f| f.total_lines).sum();
-    let total_code: usize = files.iter().map(|f| f.code_lines).sum();
-    let total_blank: usize = files.iter().map(|f| f.blank_lines).sum();
+    let total_lines:   usize = files.iter().map(|f| f.total_lines).sum();
+    let total_code:    usize = files.iter().map(|f| f.code_lines).sum();
+    let total_blank:   usize = files.iter().map(|f| f.blank_lines).sum();
     let total_comment: usize = files.iter().map(|f| f.comment_lines).sum();
 
-    println!("\n{}", "━".repeat(50).bright_blue());
-    println!("{}", "  🚀  نظرة عامة على المشروع".bright_white().bold());
-    println!("{}", "━".repeat(50).bright_blue());
+    println!("\n{}", "=".repeat(50).bright_blue());
+    println!("{}", "  Project Overview".bright_white().bold());
+    println!("{}", "=".repeat(50).bright_blue());
 
-    let stat_line = |icon: &str, label: &str, value: String| {
+    let row = |label: &str, value: String| {
         println!(
-            "  {}  {:<20} {}",
-            icon,
+            "  {:<24} {}",
             label.bright_cyan(),
             value.bright_yellow().bold()
         );
     };
 
-    stat_line("📁", "عدد المجلدات", dir_count.to_string());
-    stat_line("📄", "عدد الملفات", files.len().to_string());
-    stat_line("📏", "إجمالي الأسطر", format_number(total_lines));
-    stat_line("💻", "أسطر الكود", format_number(total_code));
-    stat_line("💬", "أسطر التعليقات", format_number(total_comment));
-    stat_line("⬜", "أسطر فارغة", format_number(total_blank));
+    row("Directories",   dir_count.to_string());
+    row("Total Files",   files.len().to_string());
+    row("Total Lines",   format_number(total_lines));
+    row("Code Lines",    format_number(total_code));
+    row("Comment Lines", format_number(total_comment));
+    row("Blank Lines",   format_number(total_blank));
 
-    // نسبة الكود
     if total_lines > 0 {
         let pct = total_code * 100 / total_lines;
-        stat_line("📈", "نسبة الكود", format!("{}%", pct));
+        row("Code Ratio", format!("{}%", pct));
     }
 
-    println!("{}\n", "━".repeat(50).bright_blue());
+    println!("{}\n", "=".repeat(50).bright_blue());
 }
 
-/// يضيف فواصل آلاف للأرقام الكبيرة
 fn format_number(n: usize) -> String {
     let s = n.to_string();
     let mut result = String::new();
@@ -412,20 +462,20 @@ fn format_number(n: usize) -> String {
     result.chars().rev().collect()
 }
 
-// ──────────────────────────────────────────────────
-//  نقطة الدخول
-// ──────────────────────────────────────────────────
+// --------------------------------------------------
+//  Entry point
+// --------------------------------------------------
 
 fn main() {
-    let cli = Cli::parse();
+    let cli  = Cli::parse();
     let root = PathBuf::from(&cli.path);
 
     if !root.exists() {
-        eprintln!("{}", "❌  المسار المحدد غير موجود!".bright_red().bold());
+        eprintln!("{}", "  ERROR: path not found.".bright_red().bold());
         std::process::exit(1);
     }
 
-    // شعار الأداة
+    // Banner
     println!();
     println!("{}", "   ██████╗ ██████╗ ██████╗ ███████╗    ███████╗████████╗ █████╗ ████████╗███████╗".bright_blue());
     println!("{}", "  ██╔════╝██╔═══██╗██╔══██╗██╔════╝    ██╔════╝╚══██╔══╝██╔══██╗╚══██╔══╝██╔════╝".bright_blue());
@@ -433,18 +483,16 @@ fn main() {
     println!("{}", "  ██║     ██║   ██║██║  ██║██╔══╝      ╚════██║   ██║   ██╔══██║   ██║   ╚════██║".bright_cyan());
     println!("{}", "  ╚██████╗╚██████╔╝██████╔╝███████╗    ███████║   ██║   ██║  ██║   ██║   ███████║".cyan());
     println!("{}", "   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝    ╚══════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝".cyan());
-    println!(
-        "  {}",
-        "أداة تحليل الكود المصدري — تم تطويرها بمساعدة الذكاء الاصطناعي"
-            .bright_black()
-            .italic()
-    );
+    println!("  {}", "Source Code Analyzer  |  Built with Rust  |  Developed with Claude AI".bright_black());
     println!();
 
     let command = cli.command.unwrap_or(Commands::All);
 
     match command {
         Commands::Tree { files_only: _ } => {
+            println!("{}", "=".repeat(60).bright_blue());
+            println!("{}", "  Project Tree".bright_white().bold());
+            println!("{}", "=".repeat(60).bright_blue());
             print_tree(&root, &cli.ignore_dir);
         }
         Commands::Lines => {
@@ -456,15 +504,13 @@ fn main() {
             print_full_stats(&root, &files);
         }
         Commands::All => {
-            // نعرض كل شيء
             let files = collect_files(&root, &cli.ignore_ext, &cli.ignore_dir);
             print_full_stats(&root, &files);
             print_lines_stats(&files);
-            println!("{}", "━".repeat(60).bright_blue());
-            println!("{}", "  🌳  مخطط المشروع".bright_white().bold());
-            println!("{}", "━".repeat(60).bright_blue());
+            println!("{}", "=".repeat(60).bright_blue());
+            println!("{}", "  Project Tree".bright_white().bold());
+            println!("{}", "=".repeat(60).bright_blue());
             print_tree(&root, &cli.ignore_dir);
         }
     }
-      }
-      
+}
