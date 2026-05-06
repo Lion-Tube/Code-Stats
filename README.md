@@ -53,7 +53,7 @@ cargo --version
 ### الخطوة الأولى — استنساخ المستودع
 
 ```bash
-git clone https://github.com/lion-cube/code-stats
+git clone https://github.com/lion-tube/code-stats
 cd code-stats
 ```
 
